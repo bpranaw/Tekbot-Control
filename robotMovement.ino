@@ -14,7 +14,7 @@ Purpose:
 Variable Names:
     motor1, motor2, motor3, motor4
 Variable Type:
-    Integers
+    Constants(Integers)
 Purpose:
     Stores the digital pin numbers corresponding to the motor connections
     motor1 and motor2 represent the bidirectional movement of 2 motors in parallel
@@ -22,12 +22,34 @@ Purpose:
     motor3 and motor4 work the same but for different motors
  */
 
-    int motor1 = 6; 
-    int motor2 = 7; 
+    const int motor1 = 6; 
+    const int motor2 = 7; 
     
-    int motor3 = 8;
-    int motor4 = 9;
+    const int motor3 = 8;
+    const int motor4 = 9;
 
+/*
+Variable Names:
+    leftTouchSensor, rightTouchSensor
+Variable Type:
+    Character
+Purpose:
+    Stores the analog pin numbers corresponding to the left and right front touch sensors
+ */
+    const char leftTouchSensor = "A6";
+    const char rightTouchSensor = "A5";
+    
+/*
+Variable Names: 
+    sonicTrigger, sonicEcho, duration, cm, inches
+Variable Types: 
+    int, long
+Purpose: 
+    Stores the digital pin number that corresponds to the ultrasonic distance sensor's trigger and echo pins
+ */
+    const int sonicTrigger = 4;
+    const int sonicEcho = 5;
+    long duration, cm, inches;
 /*
 Function Name:
     setup
@@ -45,11 +67,11 @@ Purpose:
     {
       /*
       Variables involved:
-          PWM_Pin, motor1, motor2, motor3, motor4
+          PWM_Pin, motor1, motor2, motor3, motor4, leftTouchSensor, rightTouchSensor, sonicTrigger, sonicEcho
       Functions Used:
           pinMode()
         Inputs:
-            PWM_Pin, motor1, motor2, motor3, motor4, OUTPUT
+            PWM_Pin, motor1, motor2, motor3, motor4, OUTPUT, leftTouchSensor, rightTouchSenspr, sonicTrigger, sonicEcho
         Outputs:
             None
       Purpose:
@@ -60,7 +82,13 @@ Purpose:
              pinMode(motor2,OUTPUT);
              pinMode(motor3,OUTPUT);
              pinMode(motor4,OUTPUT);
-      
+             
+             pinMode(leftTouchSensor,INPUT);
+             pinMode(rightTouchSensor,INPUT);
+
+             pinMode(sonicTrigger,OUTPUT);
+             pinMode(sonicEcho,INPUT);
+             delay(10000);
       
       
       /*
@@ -111,19 +139,8 @@ Purpose:
 
     void loop() 
     {
-        delay(2000);
-        
-        digitalWrite(motor1,LOW);
-        digitalWrite(motor2,HIGH);
-        digitalWrite(motor3,LOW);
-        digitalWrite(motor4,HIGH);
-        
-        
-        delay(4000);
-        
-        moveStop();
-        
-        while(1){}
+        delay(250);
+        navigateMaze();
     }
 
 /*
@@ -145,8 +162,8 @@ Purpose:
          digitalWrite(motor2,LOW);
 
          //Left Side Motor
-         digitalWrite(motor3,HIGH);
-         digitalWrite(motor4,LOW);
+         digitalWrite(motor3,LOW);
+         digitalWrite(motor4,HIGH);
      
     }
 
@@ -166,12 +183,12 @@ Purpose:
     void moveBackward()
     {
          //Right Side Motor
-         digitalWrite(motor1,LOW);
-         digitalWrite(motor2,HIGH);
+         digitalWrite(motor1,HIGH);
+         digitalWrite(motor2,LOW);
         
          //Left Side Motor
-         digitalWrite(motor3,LOW);
-         digitalWrite(motor4,HIGH);
+         digitalWrite(motor3,HIGH);
+         digitalWrite(motor4,LOW);
      
     }
 
@@ -215,8 +232,8 @@ Purpose:
          digitalWrite(motor2,HIGH);
 
          //Left Side Motor
-         digitalWrite(motor3,HIGH);
-         digitalWrite(motor4,LOW);
+         digitalWrite(motor3,LOW);
+         digitalWrite(motor4,HIGH);
     }
 
 /*
@@ -238,6 +255,144 @@ Purpose:
          digitalWrite(motor2,LOW);
 
          //Left Side Motor
-         digitalWrite(motor3,LOW);
-         digitalWrite(motor4,HIGH);
+         digitalWrite(motor3,HIGH);
+         digitalWrite(motor4,LOW);
+    }
+
+
+/*
+Function Name:
+    isTouchSensorPressed
+Return Type: 
+    Boolean
+Inputs:
+    Char(leftTouchSensor or rightTouchSensor)
+Outputs:
+    Boolean: False(Unpressed) or True(Pressed)
+Purpose:
+    Converts the value of the specific touch sensor inputted and returns a boolean to indicate whether it is pressed
+ */
+
+    bool isTouchSensorPressed(char sensor)
+    {
+        if(sensor == leftTouchSensor)
+        {
+             if(analogRead(sensor) == LOW)
+             {
+                 return true;
+             }
+             else
+             {
+                 return false;
+             }
+        }
+        else if(sensor == rightTouchSensor)
+        {
+             if(analogRead(sensor) == LOW)
+             {
+                 return true;
+             }
+             else
+             {
+                 return false;
+             }
+          
+        }
+        else
+        {
+             Serial.println();
+             Serial.print("The input is not a touch sensor");
+        }
+    }
+
+/*
+Function Name:
+    howFarIsWall
+Return Type: 
+    double
+Inputs:
+    Int (sonicTrigger, sonicEcho)
+Outputs:
+    Distance(long)
+Purpose:
+    Operates the ultrasonic sensor by sending out pulses and using math and the time it taks to recieve the pulse to determine the distance
+ */
+    double howFarIsWall( int trigger, int echo)
+    {
+      //(CODE ADAPTED FROM RUI SANTOS)
+      
+        /*
+            The ultrasonic sensor operates on HIGH pulses of 10+ microseconds
+            so it is important to send a short LOW ping to get clean HIGH pings
+         */
+         
+        digitalWrite(trigger, LOW);
+        delayMicroseconds(5);
+        
+        digitalWrite(trigger, HIGH);
+        delayMicroseconds(10);
+        
+        digitalWrite(trigger, LOW);
+
+        //This sends a pulse and the duration is the time it takes for the echo to come back
+        duration = pulseIn(echo, HIGH);
+
+        // Convert the time into a distance
+        cm = (duration/2) / 29.1;     // Divide by 29.1 or multiply by 0.0343
+        inches = (duration/2) / 74;   // Divide by 74 or multiply by 0.0135
+
+        //Prints the distance from the wall into the serial
+        Serial.print("Distance from a wall:");
+        Serial.println();
+        Serial.print(inches);
+        Serial.print("in, ");
+        Serial.print(cm);
+        Serial.print("cm");
+        Serial.println();
+
+        return cm;
+    }
+/*
+Function Name:
+    navigateMaze
+Return Type: 
+    void
+Inputs:
+    None
+Outputs:
+    None
+Purpose:
+    Navigates a maze autonomously
+ */
+    int rate = 10; //The real rate is 20 but this is for accuracy purposes.
+    const int timeFor180Degree = 1500; //The estimated time it takes for the robot to rotate 180 degrees in milliseconds
+    const int timeFor90Degree = 800;  //The estimated time it takes for the robot to rotate 90 degrees in miliseconds
+    void navigateMaze()
+    {
+        
+        int wallDistance = howFarIsWall(sonicTrigger,sonicEcho);
+        delay(250);
+        while( wallDistance > 8)
+        {
+          delay(250);
+          moveForward();
+          delay(wallDistance*rate);
+          moveStop();
+          delay(250);
+          wallDistance = howFarIsWall(sonicTrigger,sonicEcho);
+        }
+
+        moveStop();
+        delay(500);
+        rotateLeft();
+        delay(timeFor90Degree);
+        moveStop();
+
+        if(howFarIsWall(sonicTrigger,sonicEcho) < 15)
+        {
+            delay(500);
+            rotateRight();
+            delay(timeFor180Degree);
+            moveStop();
+        }       
     }
