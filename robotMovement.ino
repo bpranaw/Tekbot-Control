@@ -2,19 +2,20 @@
 Variable Names: 
     PWM_Pin, PWM_Speed
 Variable Type: 
-    Integers
+
 Purpose: 
     Stores the pin number that corresponds to the Pulse Width Modulation(PWM) pin on the Arduino
     Also controles the frequency of the PWM  
  */
-    int PWM_Pin = 3; //needs to be this pin for pwm
-    int PWM_Speed = 130; 
+ #define PWM_Pin 3 //needs to be this pin for pwm
+ #define PWM_PinB 11
+ #define PWM_Speed 130 
 
 /*
 Variable Names:
     motor1, motor2, motor3, motor4
 Variable Type:
-    Constants(Integers)
+
 Purpose:
     Stores the digital pin numbers corresponding to the motor connections
     motor1 and motor2 represent the bidirectional movement of 2 motors in parallel
@@ -22,11 +23,11 @@ Purpose:
     motor3 and motor4 work the same but for different motors
  */
 
-    const int motor1 = 6; 
-    const int motor2 = 7; 
+    #define motor1 6
+    #define motor2 7
     
-    const int motor3 = 8;
-    const int motor4 = 9;
+    #define motor3 8
+    #define motor4 9
 
 /*
 Variable Names:
@@ -36,8 +37,8 @@ Variable Type:
 Purpose:
     Stores the analog pin numbers corresponding to the left and right front touch sensors
  */
-    const char leftTouchSensor = "A6";
-    const char rightTouchSensor = "A5";
+    //char leftTouchSensor = "A6";
+    //char rightTouchSensor = "A5";
     
 /*
 Variable Names: 
@@ -47,8 +48,8 @@ Variable Types:
 Purpose: 
     Stores the digital pin number that corresponds to the ultrasonic distance sensor's trigger and echo pins
  */
-    const int sonicTrigger = 4;
-    const int sonicEcho = 5;
+    #define sonicTrigger 4
+    #define sonicEcho 5
     long duration, cm, inches;
 /*
 Function Name:
@@ -78,17 +79,18 @@ Purpose:
           Initialize the pins and configure them as either inputs or outputs
        */
              pinMode(PWM_Pin,OUTPUT);
+             pinMode(PWM_PinB,OUTPUT);
              pinMode(motor1,OUTPUT);
              pinMode(motor2,OUTPUT);
              pinMode(motor3,OUTPUT);
              pinMode(motor4,OUTPUT);
              
-             pinMode(leftTouchSensor,INPUT);
-             pinMode(rightTouchSensor,INPUT);
+             //pinMode(leftTouchSensor,INPUT);
+             //pinMode(rightTouchSensor,INPUT);
 
              pinMode(sonicTrigger,OUTPUT);
              pinMode(sonicEcho,INPUT);
-             delay(10000);
+             
       
       
       /*
@@ -104,11 +106,12 @@ Purpose:
           Sets the frequency of the PWM and stops the motors
        */
            digitalWrite(PWM_Pin,PWM_Speed);
+           digitalWrite(PWM_PinB,PWM_Speed);
            digitalWrite(motor1,HIGH);
            digitalWrite(motor2,HIGH);
            digitalWrite(motor3,HIGH);
            digitalWrite(motor4,HIGH);
-      
+           
       
       /*
       Functions Used:
@@ -121,6 +124,7 @@ Purpose:
           Initializes the Serial communication and sets the tempo at which signals will be sent          
        */
           Serial.begin(9600);
+          delay(5000);
     }
 
 /*
@@ -139,7 +143,6 @@ Purpose:
 
     void loop() 
     {
-        delay(250);
         navigateMaze();
     }
 
@@ -157,11 +160,11 @@ Purpose:
  */
     void moveForward()
     {
-         //Right Side Motor
+         //Left Side Motor
          digitalWrite(motor1,HIGH);
          digitalWrite(motor2,LOW);
 
-         //Left Side Motor
+         //Right Side Motor
          digitalWrite(motor3,LOW);
          digitalWrite(motor4,HIGH);
      
@@ -182,11 +185,11 @@ Purpose:
  */
     void moveBackward()
     {
-         //Right Side Motor
-         digitalWrite(motor1,HIGH);
-         digitalWrite(motor2,LOW);
-        
          //Left Side Motor
+         digitalWrite(motor1,LOW);
+         digitalWrite(motor2,HIGH);
+        
+         //Right Side Motor
          digitalWrite(motor3,HIGH);
          digitalWrite(motor4,LOW);
      
@@ -227,13 +230,13 @@ Purpose:
  */
     void rotateRight()
     {
-         //Right Side Motor
-         digitalWrite(motor1,LOW);
-         digitalWrite(motor2,HIGH);
-
          //Left Side Motor
-         digitalWrite(motor3,LOW);
-         digitalWrite(motor4,HIGH);
+         digitalWrite(motor1,HIGH);
+         digitalWrite(motor2,LOW);
+
+         //Right Side Motor
+         digitalWrite(motor3,HIGH);
+         digitalWrite(motor4,LOW);
     }
 
 /*
@@ -251,12 +254,12 @@ Purpose:
     void rotateLeft()
     {
          //Right Side Motor
-         digitalWrite(motor1,HIGH);
-         digitalWrite(motor2,LOW);
+         digitalWrite(motor1,LOW);
+         digitalWrite(motor2,HIGH);
 
          //Left Side Motor
-         digitalWrite(motor3,HIGH);
-         digitalWrite(motor4,LOW);
+         digitalWrite(motor3,LOW);
+         digitalWrite(motor4,HIGH);
     }
 
 
@@ -272,7 +275,7 @@ Outputs:
 Purpose:
     Converts the value of the specific touch sensor inputted and returns a boolean to indicate whether it is pressed
  */
-
+  /*
     bool isTouchSensorPressed(char sensor)
     {
         if(sensor == leftTouchSensor)
@@ -304,7 +307,7 @@ Purpose:
              Serial.print("The input is not a touch sensor");
         }
     }
-
+  */
 /*
 Function Name:
     howFarIsWall
@@ -365,8 +368,66 @@ Purpose:
     Navigates a maze autonomously
  */
     int rate = 10; //The real rate is 20 but this is for accuracy purposes.
-    const int timeFor180Degree = 1500; //The estimated time it takes for the robot to rotate 180 degrees in milliseconds
-    const int timeFor90Degree = 800;  //The estimated time it takes for the robot to rotate 90 degrees in miliseconds
+    int timeFor180Degree = 3200; //The estimated time it takes for the robot to rotate 180 degrees in milliseconds
+    int timeFor90Degree = 1600;  //The estimated time it takes for the robot to rotate 90 degrees in miliseconds
+    void navigateMaze()
+    {
+
+              
+        int wallDistance = howFarIsWall(sonicTrigger,sonicEcho);
+        delay(250);
+
+       
+            
+            while( wallDistance > 10)
+            {
+                delay(250);
+                moveForward();
+                delay(wallDistance*rate);
+                moveStop();
+                delay(250);
+                wallDistance = howFarIsWall(sonicTrigger,sonicEcho);
+            }
+    
+            moveStop();
+            delay(500);
+            rotateLeft();
+            delay(timeFor90Degree);
+            moveStop();
+    
+            if(howFarIsWall(sonicTrigger,sonicEcho) < 15)
+            {
+                  delay(500);
+                  rotateRight();
+                  delay(timeFor180Degree);
+                  moveStop();
+            }
+
+             if(howFarIsWall(sonicTrigger,sonicEcho) < 10)
+            {
+                 moveBackward();
+                 delay(2000);
+                 moveStop();
+            }
+        }
+  
+   
+
+/* COPY OF NAGIVATE MAZE BEFORE CHANGES
+ Function Name:
+    navigateMaze
+Return Type: 
+    void
+Inputs:
+    None
+Outputs:
+    None
+Purpose:
+    Navigates a maze autonomously
+ 
+    int rate = 10; //The real rate is 20 but this is for accuracy purposes.
+    int timeFor180Degree = 1500; //The estimated time it takes for the robot to rotate 180 degrees in milliseconds
+    int timeFor90Degree = 800;  //The estimated time it takes for the robot to rotate 90 degrees in miliseconds
     void navigateMaze()
     {
         
@@ -396,3 +457,5 @@ Purpose:
             moveStop();
         }       
     }
+
+*/
